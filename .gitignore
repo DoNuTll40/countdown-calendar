@@ -25,4 +25,5 @@ src/pages/*
 *.sw?
 
 .env
-.gitignore
+.env.local
+.env.*
