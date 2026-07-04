@@ -23,3 +23,6 @@ src/pages/*
 *.njsproj
 *.sln
 *.sw?
+
+.env
+.gitignore
