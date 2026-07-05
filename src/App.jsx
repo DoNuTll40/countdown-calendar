@@ -64,8 +64,10 @@ const getInitialTab = () => {
 };
 
 const hasRealLocation = (location) => !!location && location !== 'ไม่ระบุสถานที่';
+// แก้ไขลิงก์ Map ที่โดนแปลงให้กลับมาเป็นปกติ
 const getMapEmbedUrl = (location) => `https://maps.google.com/maps?q=${encodeURIComponent(location)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
 const getMapsExternalUrl = (location) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
+
 const formatThaiDate = (date) => date.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short', year: '2-digit' });
 const isMultiDay = (event) => event.endDate && event.date.toDateString() !== event.endDate.toDateString();
 const formatEventDateRange = (event) => isMultiDay(event) ? `${formatThaiDate(event.date)} - ${formatThaiDate(event.endDate)}` : formatThaiDate(event.date);
@@ -75,8 +77,8 @@ const stripHtml = (html) => html
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<\/p>/gi, '\n')
       .replace(/<[^>]*>/g, ' ')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
+      .replace(/ /g, ' ')
+      .replace(/&/g, '&')
       .replace(/[ \t]+/g, ' ')
       .replace(/\n[ \t]+/g, '\n')
       .replace(/\n{3,}/g, '\n\n')
@@ -225,7 +227,7 @@ const computeCountdown = (targetDate, now) => {
 };
 
 const FlipUnit = React.memo(function FlipUnit({ value, label, isDark, c_textMain, c_textSub, index }) {
-  const display = value.toString().padStart(2, '0');
+  const display = (value || 0).toString().padStart(2, '0');
   return (
     <motion.div
       className="flex flex-col items-center"
@@ -341,7 +343,6 @@ const EventDescription = React.memo(function EventDescription({
   return (
     <>
       <div className={`text-xs ${c_textSub} mt-1.5`}>
-        {/* เอา pr-2 ออกจากตรงนี้ เพราะไม่จำเป็นแล้ว */}
         <div className="line-clamp-2">
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={previewComponents}>
             {cleaned}
@@ -431,7 +432,6 @@ const TimelineView = React.memo(function TimelineView({
           return (
             <div key={event.id} className={`group relative ${c_cardBg} rounded-3xl p-5 border ${isHero ? `${t_border} ${isDark ? '' : 'shadow-[0_4px_20px_rgba(0,0,0,0.06)]'}` : `${c_cardBorder} ${c_cardShadow}`} transition-all duration-300`}>
               
-              {/* ปรับให้ขอบของปุ่มดาวขนานกับ Padding p-5 (20px) ของ Card พอดี */}
               <button
                 onMouseDown={(e) => ripple.create(e)}
                 onClick={() => onSetHero(event.id)}
@@ -443,9 +443,7 @@ const TimelineView = React.memo(function TimelineView({
               <div className="flex gap-4 items-start">
                 <div className={`mt-1.5 flex-shrink-0 w-2 h-2 rounded-full ${isHero ? 'animate-pulse' : (isDark ? 'bg-slate-600' : 'bg-slate-300')}`} style={isHero ? { backgroundColor: themeHex } : {}}></div>
                 
-                {/* เอา pr-12 ออกจาก wrapper หลัก เพื่อให้เนื้อหาส่วนใหญ่กางเต็มความกว้าง */}
                 <div className="flex-grow min-w-0">
-                  {/* ย้ายระยะห่าง (pr-14) มาใส่ที่ชื่อแทน เพื่อหลบปุ่มดาวเฉพาะตรงนี้ */}
                   <h3 className="text-lg font-medium mb-1 leading-snug pr-14">{event.title}</h3>
                   <div className={`text-sm ${c_textSub} space-y-1`}>
                     <p className="flex items-center gap-1.5 flex-wrap">
@@ -500,9 +498,14 @@ export default function App() {
   const [activeTab, setActiveTabState] = useState(getInitialTab);
 
   const [prefs, setPrefs] = useState(() => {
-    const saved = localStorage.getItem('app_preferences');
-    const parsed = saved ? JSON.parse(saved) : {};
-    return { theme: 'blue', fontSize: 'base', darkMode: false, navSize: 'md', upcomingCount: 3, ...parsed };
+    // ใส่ try-catch ป้องกัน LocalStorage ข้อมูลพังแล้วพาเว็บล่ม
+    try {
+      const saved = localStorage.getItem('app_preferences');
+      const parsed = saved ? JSON.parse(saved) : {};
+      return { theme: 'blue', fontSize: 'base', darkMode: false, navSize: 'md', upcomingCount: 3, ...parsed };
+    } catch (error) {
+      return { theme: 'blue', fontSize: 'base', darkMode: false, navSize: 'md', upcomingCount: 3 };
+    }
   });
 
   const [events, setEvents] = useState([]);
@@ -661,7 +664,7 @@ export default function App() {
 
   const upcomingEvents = useMemo(() => {
     if (events.length === 0) return [];
-    return events.filter(e => e.id !== heroEvent?.id).slice(0, prefs.upcomingCount);
+    return events.filter(e => e.id !== heroEvent?.id).slice(0, prefs.upcomingCount || 3);
   }, [events, heroEvent, prefs.upcomingCount]);
 
   const isDark = prefs.darkMode;
@@ -675,9 +678,11 @@ export default function App() {
   const c_headerBg = isDark ? 'bg-slate-900/80' : 'bg-white/70';
   const c_navBg = isDark ? 'bg-slate-800/90' : 'bg-white/90';
 
-  const t_bg = isDark ? THEMES[prefs.theme].bgDark : THEMES[prefs.theme].bgLight;
-  const t_text = isDark ? THEMES[prefs.theme].textDark : THEMES[prefs.theme].textLight;
-  const t_border = isDark ? THEMES[prefs.theme].borderDark : THEMES[prefs.theme].borderLight;
+  // ป้องกัน Theme แครชกรณีที่ผู้ใช้เผลอเซฟชื่อ Theme ผิดไว้ใน LocalStorage
+  const activeTheme = THEMES[prefs.theme] || THEMES.blue;
+  const t_bg = isDark ? activeTheme.bgDark : activeTheme.bgLight;
+  const t_text = isDark ? activeTheme.textDark : activeTheme.textLight;
+  const t_border = isDark ? activeTheme.borderDark : activeTheme.borderLight;
 
   const getNavSizeClasses = () => {
     if (prefs.navSize === 'sm') return { container: 'max-w-[16.25rem] p-1.5', icon: 'w-[1.125rem] h-[1.125rem]', text: 'text-[0.5625rem] mt-0.5' };
@@ -826,7 +831,7 @@ export default function App() {
               c_cardShadow={c_cardShadow}
               c_textSub={c_textSub}
               c_textMain={c_textMain}
-              themeHex={THEMES[prefs.theme].hex}
+              themeHex={activeTheme.hex}
             />
           )}
 
@@ -851,7 +856,7 @@ export default function App() {
                     <button
                       onClick={() => handleSavePrefs({ ...prefs, darkMode: !prefs.darkMode })}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}
-                      style={prefs.darkMode ? { backgroundColor: THEMES[prefs.theme].hex } : {}}
+                      style={prefs.darkMode ? { backgroundColor: activeTheme.hex } : {}}
                     >
                       <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${prefs.darkMode ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
@@ -952,7 +957,7 @@ export default function App() {
                 
                 <div className={`text-[0.625rem] ${c_textSub} space-y-1.5`}>
                   <p>Crafted by CS64'125 Nuttawoot Chawna</p>
-                  <p>&copy; {new Date().getFullYear()} All rights reserved.</p>
+                  <p>© {new Date().getFullYear()} All rights reserved.</p>
                 </div>
               </div>
 
