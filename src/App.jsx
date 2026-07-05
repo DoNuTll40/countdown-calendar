@@ -75,8 +75,8 @@ const stripHtml = (html) => html
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<\/p>/gi, '\n')
       .replace(/<[^>]*>/g, ' ')
-      .replace(/ /g, ' ')
-      .replace(/&/g, '&')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
       .replace(/[ \t]+/g, ' ')
       .replace(/\n[ \t]+/g, '\n')
       .replace(/\n{3,}/g, '\n\n')
@@ -341,6 +341,7 @@ const EventDescription = React.memo(function EventDescription({
   return (
     <>
       <div className={`text-xs ${c_textSub} mt-1.5`}>
+        {/* เอา pr-2 ออกจากตรงนี้ เพราะไม่จำเป็นแล้ว */}
         <div className="line-clamp-2">
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={previewComponents}>
             {cleaned}
@@ -429,10 +430,23 @@ const TimelineView = React.memo(function TimelineView({
           const isHero = event.id === heroEventId;
           return (
             <div key={event.id} className={`group relative ${c_cardBg} rounded-3xl p-5 border ${isHero ? `${t_border} ${isDark ? '' : 'shadow-[0_4px_20px_rgba(0,0,0,0.06)]'}` : `${c_cardBorder} ${c_cardShadow}`} transition-all duration-300`}>
+              
+              {/* ปรับให้ขอบของปุ่มดาวขนานกับ Padding p-5 (20px) ของ Card พอดี */}
+              <button
+                onMouseDown={(e) => ripple.create(e)}
+                onClick={() => onSetHero(event.id)}
+                className={`absolute top-5 right-5 z-10 overflow-hidden p-2.5 rounded-xl border transition-colors ${isHero ? `${t_bg} ${t_border} ${t_text}` : `${c_cardBg} ${c_cardBorder} ${c_textSub}`}`}
+              >
+                <Star className="w-5 h-5" fill={isHero ? "currentColor" : "none"} />
+              </button>
+
               <div className="flex gap-4 items-start">
-                <div className={`mt-1 flex-shrink-0 w-2 h-2 rounded-full ${isHero ? 'animate-pulse' : (isDark ? 'bg-slate-600' : 'bg-slate-300')}`} style={isHero ? { backgroundColor: themeHex } : {}}></div>
+                <div className={`mt-1.5 flex-shrink-0 w-2 h-2 rounded-full ${isHero ? 'animate-pulse' : (isDark ? 'bg-slate-600' : 'bg-slate-300')}`} style={isHero ? { backgroundColor: themeHex } : {}}></div>
+                
+                {/* เอา pr-12 ออกจาก wrapper หลัก เพื่อให้เนื้อหาส่วนใหญ่กางเต็มความกว้าง */}
                 <div className="flex-grow min-w-0">
-                  <h3 className="text-lg font-medium mb-1">{event.title}</h3>
+                  {/* ย้ายระยะห่าง (pr-14) มาใส่ที่ชื่อแทน เพื่อหลบปุ่มดาวเฉพาะตรงนี้ */}
+                  <h3 className="text-lg font-medium mb-1 leading-snug pr-14">{event.title}</h3>
                   <div className={`text-sm ${c_textSub} space-y-1`}>
                     <p className="flex items-center gap-1.5 flex-wrap">
                       <CalendarDays className="w-4 h-4" /> {formatEventDateRange(event)}
@@ -473,13 +487,6 @@ const TimelineView = React.memo(function TimelineView({
                     />
                   </div>
                 </div>
-                <button
-                  onMouseDown={(e) => ripple.create(e)}
-                  onClick={() => onSetHero(event.id)}
-                  className={`relative overflow-hidden p-3 rounded-xl border transition-colors flex-shrink-0 ${isHero ? `${t_bg} ${t_border} ${t_text}` : `${c_cardBg} ${c_cardBorder} ${c_textSub}`}`}
-                >
-                  <Star className="w-5 h-5" fill={isHero ? "currentColor" : "none"} />
-                </button>
               </div>
             </div>
           );
@@ -514,7 +521,6 @@ export default function App() {
   }, []);
 
   const [copiedId, setCopiedId] = useState(null);
-  const [heroDetailOpen, setHeroDetailOpen] = useState(false);
   const handleShare = useCallback(async (event) => {
     const text = buildShareText(event);
     try {
@@ -644,9 +650,6 @@ export default function App() {
 
   const isAppLoading = isNeonLoading || isGoogleLoading;
 
-  // -------------------------------------------------------------
-  // จุดที่แก้ไขเรื่อง Logic ขาดหายไป (Glitch)
-  // -------------------------------------------------------------
   const heroEvent = useMemo(() => {
     if (events.length === 0) return null;
     if (dbHeroId) {
@@ -744,7 +747,6 @@ export default function App() {
                         c_textSub={c_textSub}
                       />
 
-                      {/* แก้ไขจุดที่มีวงเล็บซ้ำซ้อน */}
                       {hasRealLocation(heroEvent.location) && (
                         <>
                           <button
@@ -935,8 +937,25 @@ export default function App() {
                     <li>✓ VITE_NEON_DB_STRING: {ENV.NEON_DB_STRING ? 'Loaded' : 'Missing'}</li>
                   </ul>
                 </div>
-
               </div>
+
+              {/* --- Footer หน้าตั้งค่า --- */}
+              <div className="mt-14 pb-0 flex flex-col items-center justify-center text-center">
+                <div className={`w-12 h-12 rounded-2xl ${t_bg} ${t_text} flex items-center justify-center mb-3 shadow-sm`}>
+                  <CalendarDays className="w-6 h-6" />
+                </div>
+                
+                <h3 className="font-semibold tracking-tight text-base mb-1 flex items-center justify-center gap-1">
+                  Countdown<span className={t_text}>.</span>
+                </h3>
+                <p className={`text-xs ${c_textSub} mb-5`}>Version 1.0.0</p>
+                
+                <div className={`text-[0.625rem] ${c_textSub} space-y-1.5`}>
+                  <p>Crafted by CS64'125 Nuttawoot Chawna</p>
+                  <p>&copy; {new Date().getFullYear()} All rights reserved.</p>
+                </div>
+              </div>
+
             </motion.div>
           )}
 
