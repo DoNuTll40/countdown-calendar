@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { 
   CalendarDays, Settings, Home, MapPin, Star,
   RefreshCw, CheckCircle2, Clock, Loader2,
   Palette, Type, MonitorSmartphone, Moon, Sun, Scaling, Map, ChevronDown, ListFilter,
-  Share2, Check, Video, Repeat
+  Share2, Check, Video, Repeat, X, Info
 } from 'lucide-react';
 import Ripple from '@nuttawoot_donut/react-ripple';
 import { neon } from '@neondatabase/serverless'; 
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const ripple = new Ripple();
 
@@ -61,21 +63,156 @@ const getInitialTab = () => {
   return 'dashboard';
 };
 
-// --- ฟังก์ชันล้วน (pure) อยู่นอก component เพื่อให้ reference คงที่ ไม่ทำให้ memo component re-render โดยไม่จำเป็น ---
 const hasRealLocation = (location) => !!location && location !== 'ไม่ระบุสถานที่';
-const getMapEmbedUrl = (location) => `https://maps.google.com/maps?q=${encodeURIComponent(location)}&output=embed`;
-// ลิงก์เปิด Google Maps จริงๆ (ไม่ใช่ iframe) ไว้เป็นทางเลือกสำรองเสมอ
+const getMapEmbedUrl = (location) => `https://maps.google.com/maps?q=${encodeURIComponent(location)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
 const getMapsExternalUrl = (location) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
 const formatThaiDate = (date) => date.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short', year: '2-digit' });
 const isMultiDay = (event) => event.endDate && event.date.toDateString() !== event.endDate.toDateString();
 const formatEventDateRange = (event) => isMultiDay(event) ? `${formatThaiDate(event.date)} - ${formatThaiDate(event.endDate)}` : formatThaiDate(event.date);
-// Google Calendar อาจส่ง description มาเป็น HTML ดิบๆ ตัด tag ออกก่อนแสดงผลกันหน้าตาเพี้ยน
-const stripHtml = (html) => html ? html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim() : '';
+
+const stripHtml = (html) => html
+  ? html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/ /g, ' ')
+      .replace(/&/g, '&')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n[ \t]+/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+  : '';
+
+const cleanSpanArtifacts = (text) => text
+  ? text.replace(/\[span_\d+\]\((?:start_span|end_span)\)/g, '')
+  : '';
+
+const buildMarkdownComponents = (t_text, compact = true) => ({
+  h1: ({ node, ...props }) => <p className={`font-semibold ${compact ? 'text-sm' : 'text-base'} mt-1.5 first:mt-0`} {...props} />,
+  h2: ({ node, ...props }) => <p className={`font-semibold ${compact ? 'text-sm' : 'text-base'} mt-1.5 first:mt-0`} {...props} />,
+  h3: ({ node, ...props }) => <p className={`font-semibold ${compact ? 'text-xs' : 'text-sm'} mt-1.5 first:mt-0`} {...props} />,
+  p: ({ node, ...props }) => <p className="mt-1 first:mt-0 leading-relaxed" {...props} />,
+  strong: ({ node, ...props }) => <strong className="font-semibold" {...props} />,
+  em: ({ node, ...props }) => <em className="italic" {...props} />,
+  ul: ({ node, ...props }) => <ul className="list-disc pl-4 space-y-0.5 mt-1" {...props} />,
+  ol: ({ node, ...props }) => <ol className="list-decimal pl-4 space-y-0.5 mt-1" {...props} />,
+  li: ({ node, ...props }) => <li {...props} />,
+  hr: () => <hr className="my-2 border-current opacity-20" />,
+  a: ({ node, ...props }) => (
+    <a
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`underline underline-offset-2 break-all ${t_text}`}
+      {...props}
+    />
+  ),
+});
+
+const DescriptionModal = React.memo(function DescriptionModal({
+  open, event, onClose, isDark, c_cardBg, c_cardBorder, c_textSub, c_textMain, t_text, t_bg,
+  showActions, isMapExpanded, onToggleMap, onShare, isCopied
+}) {
+  const dragControls = useDragControls();
+  const components = useMemo(() => buildMarkdownComponents(t_text, false), [t_text]);
+  const cleaned = useMemo(() => (event ? cleanSpanArtifacts(event.description) : ''), [event]);
+
+  return (
+    <AnimatePresence>
+      {open && event && (
+        <>
+          <motion.div
+            key="description-backdrop"
+            className="fixed inset-0 bg-black/50 z-[60]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={onClose}
+          />
+          <motion.div
+            key="description-sheet"
+            className={`fixed inset-x-0 bottom-0 z-[61] ${c_cardBg} rounded-t-[2rem] border-t ${c_cardBorder} max-h-[85vh] flex flex-col`}
+            style={{ transform: 'translateZ(0)' }}
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+            drag="y"
+            dragListener={false}
+            dragControls={dragControls}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.6 }}
+            onDragEnd={(e, info) => {
+              if (info.offset.y > 100 || info.velocity.y > 600) onClose();
+            }}
+          >
+            <div
+              className="flex justify-center pt-3 pb-2 flex-shrink-0 touch-none cursor-grab active:cursor-grabbing"
+              onPointerDown={(e) => dragControls.start(e)}
+            >
+              <div className={`w-10 h-1.5 rounded-full ${isDark ? 'bg-slate-600' : 'bg-slate-200'}`} />
+            </div>
+            <div className={`flex items-start justify-between gap-3 px-6 pb-4 border-b ${c_cardBorder} flex-shrink-0`}>
+              <div className="min-w-0">
+                <h3 className={`text-lg font-semibold ${c_textMain} leading-snug`}>{event.title}</h3>
+                <p className={`text-xs ${c_textSub} mt-1.5 flex items-center gap-1.5 flex-wrap`}>
+                  <CalendarDays className="w-3.5 h-3.5 flex-shrink-0" /> {formatEventDateRange(event)}
+                </p>
+                {hasRealLocation(event.location) && (
+                  <p className={`text-xs ${c_textSub} mt-1 flex items-start gap-1.5`}>
+                    <MapPin className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" /> {event.location}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={onClose}
+                className={`flex-shrink-0 w-9 h-9 rounded-full ${t_bg} ${t_text} flex items-center justify-center`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className={`px-6 py-5 overflow-y-auto text-sm ${c_textSub}`}>
+              {showActions && (
+                <div className={`mb-4 pb-4 border-b ${c_cardBorder}`}>
+                  <EventActionsBar
+                    event={event}
+                    isMapExpanded={isMapExpanded}
+                    onToggleMap={onToggleMap}
+                    onShare={onShare}
+                    isCopied={isCopied}
+                    t_text={t_text}
+                    t_bg={t_bg}
+                  />
+                  <MapEmbed
+                    location={event.location}
+                    eventId={event.id}
+                    isExpanded={isMapExpanded}
+                    t_text={t_text}
+                    c_cardBorder={c_cardBorder}
+                  />
+                </div>
+              )}
+              {cleaned ? (
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+                  {cleaned}
+                </ReactMarkdown>
+              ) : (
+                <p className={c_textSub}>ไม่มีรายละเอียดเพิ่มเติม</p>
+              )}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+});
+
 const buildShareText = (event) => {
   let text = `${event.title}\n${formatEventDateRange(event)}`;
   if (hasRealLocation(event.location)) text += `\n${event.location}`;
   return text;
 };
+
 const computeCountdown = (targetDate, now) => {
   const diff = targetDate - now;
   if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
@@ -87,11 +224,6 @@ const computeCountdown = (targetDate, now) => {
   };
 };
 
-// --- ตัวเลขนับถอยหลัง แยกออกมาเป็น component ของตัวเอง ---
-// จุดสำคัญ: setInterval ของ 1 วินาทีอยู่ "ในนี้" เท่านั้น ทำให้มีแค่ตัวเลขที่รีเรนเดอร์ทุกวินาที
-// ไม่ลากทั้งหน้า Dashboard/Timeline ไปรีเรนเดอร์ด้วย ซึ่งเป็นสาเหตุที่แผนที่ embed เคยยืดเข้ายืดออกเอง (แว้บๆ)
-// กล่องตัวเลขหนึ่งหลัก: เลขเก่าเลื่อนออกด้านบน เลขใหม่เลื่อนเข้าจากด้านล่างพร้อม fade แบบ odometer
-// และมี entrance เป็น stagger ตอนโหลดครั้งแรก/ตอนเปลี่ยน pinned event
 const FlipUnit = React.memo(function FlipUnit({ value, label, isDark, c_textMain, c_textSub, index }) {
   const display = value.toString().padStart(2, '0');
   return (
@@ -120,7 +252,6 @@ const FlipUnit = React.memo(function FlipUnit({ value, label, isDark, c_textMain
   );
 });
 
-// จุดคั่น ":" กระพริบเบาๆ ให้ดูมีชีวิต
 const Colon = ({ isDark }) => (
   <motion.div
     className={`text-3xl font-light ${isDark ? 'text-slate-600' : 'text-slate-300'} mt-3 hidden sm:block`}
@@ -152,82 +283,109 @@ const CountdownDigits = React.memo(function CountdownDigits({ targetDate, isDark
   );
 });
 
-// --- แถวแสดงที่อยู่ + ปุ่มกางแผนที่แบบ embed ---
-const LocationRow = React.memo(function LocationRow({ event, isExpanded, onToggle, t_text, t_bg, c_cardBorder }) {
-  const showMapButton = hasRealLocation(event.location);
+const AddressLine = React.memo(function AddressLine({ location }) {
   return (
-    <div>
-      <div className="flex items-start gap-1.5">
-        <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
-        <span className="flex-grow">{event.location}</span>
-      </div>
-      {showMapButton && (
-        <>
-          <button
-            onClick={() => onToggle(event.id)}
-            className={`mt-2 inline-flex items-center gap-1.5 text-xs font-semibold ${t_text} ${t_bg} px-3 py-1.5 rounded-full transition-colors`}
-          >
-            <Map className="w-3.5 h-3.5" />
-            {isExpanded ? 'ซ่อนแผนที่' : 'ดูแผนที่'}
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-          </button>
-          <AnimatePresence initial={false}>
-            {isExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.25, ease: 'easeInOut' }}
-                className="overflow-hidden"
-              >
-                <div className={`mt-3 rounded-2xl overflow-hidden border ${c_cardBorder}`} style={{ transform: 'translateZ(0)', isolation: 'isolate' }}>
-                  <iframe
-                    title={`map-${event.id}`}
-                    src={getMapEmbedUrl(event.location)}
-                    width="100%"
-                    height="200"
-                    style={{ border: 0, display: 'block' }}
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
-                </div>
-                <div className="mt-2 flex justify-end">
-                  <a
-                    href={getMapsExternalUrl(event.location)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`text-[0.6875rem] font-semibold ${t_text} underline underline-offset-2`}
-                  >
-                    เปิดใน Google Maps
-                  </a>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </>
-      )}
+    <div className="flex items-start gap-1.5">
+      <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
+      <span className="flex-grow">{location}</span>
     </div>
   );
 });
 
-// --- แถวปุ่มการกระทำ: แชร์ / เข้าร่วม Meet / เปิดใน Google Calendar ---
-const EventActions = React.memo(function EventActions({ event, onShare, isCopied, t_text, t_bg }) {
+const MapEmbed = React.memo(function MapEmbed({ location, eventId, isExpanded, t_text, c_cardBorder }) {
+  if (!hasRealLocation(location)) return null;
+  return (
+    <AnimatePresence initial={false}>
+      {isExpanded && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.25, ease: 'easeInOut' }}
+          className="overflow-hidden"
+        >
+          <div className={`mt-3 rounded-2xl overflow-hidden border ${c_cardBorder}`} style={{ transform: 'translateZ(0)', isolation: 'isolate' }}>
+            <iframe
+              title={`map-${eventId}`}
+              src={getMapEmbedUrl(location)}
+              width="100%"
+              height="200"
+              style={{ border: 0, display: 'block' }}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
+          <div className="mt-2 flex justify-end">
+            <a
+              href={getMapsExternalUrl(location)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`text-[0.6875rem] font-semibold ${t_text} underline underline-offset-2`}
+            >
+              เปิดใน Google Maps
+            </a>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+});
+
+const EventDescription = React.memo(function EventDescription({
+  event, c_textSub, t_text, t_bg, isDark, c_cardBg, c_cardBorder, c_textMain
+}) {
+  const [open, setOpen] = useState(false);
+  const cleaned = useMemo(() => cleanSpanArtifacts(event.description), [event.description]);
+  const previewComponents = useMemo(() => buildMarkdownComponents(t_text, true), [t_text]);
+  if (!cleaned) return null;
+  return (
+    <>
+      <div className={`text-xs ${c_textSub} mt-1.5`}>
+        <div className="line-clamp-2">
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={previewComponents}>
+            {cleaned}
+          </ReactMarkdown>
+        </div>
+        <button
+          onClick={() => setOpen(true)}
+          className={`text-[0.6875rem] font-semibold ${t_text} mt-1`}
+        >
+          ดูเพิ่มเติม
+        </button>
+      </div>
+      <DescriptionModal
+        open={open}
+        event={event}
+        onClose={() => setOpen(false)}
+        isDark={isDark}
+        c_cardBg={c_cardBg}
+        c_cardBorder={c_cardBorder}
+        c_textSub={c_textSub}
+        c_textMain={c_textMain}
+        t_text={t_text}
+        t_bg={t_bg}
+      />
+    </>
+  );
+});
+
+const EventActionsBar = React.memo(function EventActionsBar({ event, isMapExpanded, onToggleMap, onShare, isCopied, t_text, t_bg }) {
+  const pillClass = `inline-flex items-center gap-1.5 text-xs font-semibold ${t_text} ${t_bg} px-3 py-1.5 rounded-full transition-colors`;
   return (
     <div className="mt-2 flex flex-wrap items-center gap-2">
-      <button
-        onClick={() => onShare(event)}
-        className={`inline-flex items-center gap-1.5 text-xs font-semibold ${t_text} ${t_bg} px-3 py-1.5 rounded-full transition-colors`}
-      >
+      {hasRealLocation(event.location) && (
+        <button onClick={() => onToggleMap(event.id)} className={pillClass}>
+          <Map className="w-3.5 h-3.5" />
+          {isMapExpanded ? 'ซ่อนแผนที่' : 'ดูแผนที่'}
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isMapExpanded ? 'rotate-180' : ''}`} />
+        </button>
+      )}
+      <button onClick={() => onShare(event)} className={pillClass}>
         {isCopied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
         {isCopied ? 'คัดลอกลิงก์แล้ว' : 'แชร์'}
       </button>
       {event.meetLink && (
-        <a
-          href={event.meetLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`inline-flex items-center gap-1.5 text-xs font-semibold ${t_text} ${t_bg} px-3 py-1.5 rounded-full transition-colors`}
-        >
+        <a href={event.meetLink} target="_blank" rel="noopener noreferrer" className={pillClass}>
           <Video className="w-3.5 h-3.5" /> เข้าร่วม Meet
         </a>
       )}
@@ -245,12 +403,9 @@ const EventActions = React.memo(function EventActions({ event, onShare, isCopied
   );
 });
 
-
-// เหตุผล: ไม่รับ prop ที่เปลี่ยนทุกวินาที (ไม่มี currentTime) จึงไม่ re-render ตามตัวนับเวลาถอยหลัง
-// ทำให้ AnimatePresence/iframe แผนที่ไม่กระตุกอีกต่อไป
 const TimelineView = React.memo(function TimelineView({
   events, heroEventId, isAppLoading, expandedMapIds, onToggleMap, onSetHero, onRefresh, onShare, copiedId,
-  isDark, t_bg, t_text, t_border, c_cardBg, c_cardBorder, c_cardShadow, c_textSub, themeHex
+  isDark, t_bg, t_text, t_border, c_cardBg, c_cardBorder, c_cardShadow, c_textSub, c_textMain, themeHex
 }) {
   return (
     <motion.div key="timeline" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
@@ -287,18 +442,35 @@ const TimelineView = React.memo(function TimelineView({
                         </span>
                       )}
                     </p>
-                    <LocationRow
+                    <AddressLine location={event.location} />
+                    {event.description && (
+                      <EventDescription
+                        event={event}
+                        c_textSub={c_textSub}
+                        t_text={t_text}
+                        t_bg={t_bg}
+                        isDark={isDark}
+                        c_cardBg={c_cardBg}
+                        c_cardBorder={c_cardBorder}
+                        c_textMain={c_textMain}
+                      />
+                    )}
+                    <EventActionsBar
                       event={event}
-                      isExpanded={expandedMapIds.has(event.id)}
-                      onToggle={onToggleMap}
+                      isMapExpanded={expandedMapIds.has(event.id)}
+                      onToggleMap={onToggleMap}
+                      onShare={onShare}
+                      isCopied={copiedId === event.id}
                       t_text={t_text}
                       t_bg={t_bg}
+                    />
+                    <MapEmbed
+                      location={event.location}
+                      eventId={event.id}
+                      isExpanded={expandedMapIds.has(event.id)}
+                      t_text={t_text}
                       c_cardBorder={c_cardBorder}
                     />
-                    {event.description && (
-                      <p className={`text-xs ${c_textSub} mt-1.5 line-clamp-2`}>{event.description}</p>
-                    )}
-                    <EventActions event={event} onShare={onShare} isCopied={copiedId === event.id} t_text={t_text} t_bg={t_bg} />
                   </div>
                 </div>
                 <button
@@ -341,8 +513,8 @@ export default function App() {
     });
   }, []);
 
-  // แชร์กิจกรรม: ใช้ Web Share API ของมือถือ (เด้ง share sheet จริง) ถ้าเบราว์เซอร์ไม่รองรับ fallback เป็นคัดลอกลิงก์แทน
   const [copiedId, setCopiedId] = useState(null);
+  const [heroDetailOpen, setHeroDetailOpen] = useState(false);
   const handleShare = useCallback(async (event) => {
     const text = buildShareText(event);
     try {
@@ -354,7 +526,7 @@ export default function App() {
         setTimeout(() => setCopiedId(null), 2000);
       }
     } catch (err) {
-      // ผู้ใช้กดยกเลิก share sheet เอง หรือ clipboard ใช้ไม่ได้ - เงียบไว้ ไม่ต้องแจ้ง error
+      // User cancelled share
     }
   }, []);
 
@@ -392,7 +564,6 @@ export default function App() {
     document.body.style.backgroundColor = prefs.darkMode ? '#0f172a' : '#fafafa';
   }, [prefs.darkMode]);
 
-  // ปรับ font-size ที่ <html> ตรงๆ เพื่อให้ทุก class ที่เป็นหน่วย rem ของ Tailwind สเกลไปด้วยกันทั้งแอป
   useEffect(() => {
     document.documentElement.style.fontSize = `${FONT_SIZE_PX[prefs.fontSize] || FONT_SIZE_PX.base}px`;
   }, [prefs.fontSize]);
@@ -473,6 +644,9 @@ export default function App() {
 
   const isAppLoading = isNeonLoading || isGoogleLoading;
 
+  // -------------------------------------------------------------
+  // จุดที่แก้ไขเรื่อง Logic ขาดหายไป (Glitch)
+  // -------------------------------------------------------------
   const heroEvent = useMemo(() => {
     if (events.length === 0) return null;
     if (dbHeroId) {
@@ -482,21 +656,18 @@ export default function App() {
     return events[0];
   }, [events, dbHeroId]);
 
-  // ไม่ผูกกับ currentTime ที่ tick ทุกวินาทีแล้ว คำนวณครั้งเดียวตอนข้อมูลเปลี่ยน ก็เพียงพอสำหรับลิสต์ "กำลังจะมาถึง"
   const upcomingEvents = useMemo(() => {
-    const now = new Date();
-    return events.filter(e => e.id !== heroEvent?.id && e.date > now).slice(0, prefs.upcomingCount);
+    if (events.length === 0) return [];
+    return events.filter(e => e.id !== heroEvent?.id).slice(0, prefs.upcomingCount);
   }, [events, heroEvent, prefs.upcomingCount]);
 
   const isDark = prefs.darkMode;
-
-  const c_bgMain = isDark ? 'bg-slate-900' : 'bg-[#fafafa]';
+  const c_bgMain = isDark ? 'bg-slate-900' : 'bg-slate-50';
   const c_textMain = isDark ? 'text-slate-100' : 'text-slate-900';
   const c_textSub = isDark ? 'text-slate-400' : 'text-slate-500';
-
   const c_cardBg = isDark ? 'bg-slate-800' : 'bg-white';
-  const c_cardBorder = isDark ? 'border-slate-700' : 'border-slate-100';
-  const c_cardShadow = isDark ? 'shadow-none' : 'shadow-[0_8px_30px_rgba(0,0,0,0.04)]';
+  const c_cardBorder = isDark ? 'border-slate-700' : 'border-slate-200';
+  const c_cardShadow = isDark ? 'shadow-none' : 'shadow-sm';
 
   const c_headerBg = isDark ? 'bg-slate-900/80' : 'bg-white/70';
   const c_navBg = isDark ? 'bg-slate-800/90' : 'bg-white/90';
@@ -505,8 +676,6 @@ export default function App() {
   const t_text = isDark ? THEMES[prefs.theme].textDark : THEMES[prefs.theme].textLight;
   const t_border = isDark ? THEMES[prefs.theme].borderDark : THEMES[prefs.theme].borderLight;
 
-  // ทุกขนาดที่กำหนดเป็น px ตรงๆ ถูกแปลงเป็น rem แล้วทั้งหมด เพื่อให้สเกลไปพร้อมกับตัวหนังสือตอนปรับ "ขนาดตัวอักษร"
-  // ป้องกันปัญหา UI ล้น/บัง เวลาเลือกขนาดใหญ่สุด
   const getNavSizeClasses = () => {
     if (prefs.navSize === 'sm') return { container: 'max-w-[16.25rem] p-1.5', icon: 'w-[1.125rem] h-[1.125rem]', text: 'text-[0.5625rem] mt-0.5' };
     if (prefs.navSize === 'lg') return { container: 'max-w-[22.5rem] p-2.5', icon: 'w-[1.625rem] h-[1.625rem]', text: 'text-[0.75rem] mt-1' };
@@ -517,9 +686,6 @@ export default function App() {
   return (
     <div className={`font-google min-h-screen ${c_bgMain} ${c_textMain} pb-36 selection:${t_bg} transition-colors duration-300`}>
 
-      {/* transform ที่นี่บังคับให้ header ได้ compositing layer ของตัวเอง แก้บั๊ก iframe แผนที่ทะลุทับ header บน Android WebView
-          (ใส่แค่ที่ header ไม่ใช่ที่ root เพราะถ้าใส่ที่ root จะไปเปลี่ยน containing block ของ position:fixed
-          ทำให้ dock nav ด้านล่างเลื่อนตามเนื้อหาแทนที่จะลอยติดจอ) */}
       <header
         className={`sticky top-0 z-40 ${c_headerBg} backdrop-blur-xl border-b ${c_cardBorder} px-5 py-4 transition-colors duration-300`}
         style={{ transform: 'translateZ(0)' }}
@@ -566,16 +732,11 @@ export default function App() {
                         )}
                       </p>
                       {hasRealLocation(heroEvent.location) && (
-                        <p className={`${c_textSub} text-sm flex items-center gap-1.5 mb-1`}>
-                          <MapPin className="w-4 h-4" /> {heroEvent.location}
-                        </p>
+                        <div className={`${c_textSub} text-sm mb-1 max-w-md`}>
+                          <AddressLine location={heroEvent.location} />
+                        </div>
                       )}
-                      {heroEvent.description && (
-                        <p className={`${c_textSub} text-xs mb-4 max-w-md line-clamp-2`}>{heroEvent.description}</p>
-                      )}
-                      <EventActions event={heroEvent} onShare={handleShare} isCopied={copiedId === heroEvent.id} t_text={t_text} t_bg={t_bg} />
 
-                      {/* ตัวนับถอยหลัง: แยกเป็น component ของตัวเอง มีแค่ตัวนี้ที่รีเรนเดอร์ทุกวินาที */}
                       <CountdownDigits
                         targetDate={heroEvent.date}
                         isDark={isDark}
@@ -583,49 +744,26 @@ export default function App() {
                         c_textSub={c_textSub}
                       />
 
+                      {/* แก้ไขจุดที่มีวงเล็บซ้ำซ้อน */}
                       {hasRealLocation(heroEvent.location) && (
-                        <button
-                          onClick={() => toggleMap(heroEvent.id)}
-                          className={`mt-6 inline-flex items-center gap-1.5 text-xs font-semibold ${t_text} ${t_bg} px-3 py-1.5 rounded-full transition-colors`}
-                        >
-                          <Map className="w-3.5 h-3.5" />
-                          {expandedMapIds.has(heroEvent.id) ? 'ซ่อนแผนที่' : 'ดูแผนที่'}
-                          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expandedMapIds.has(heroEvent.id) ? 'rotate-180' : ''}`} />
-                        </button>
-                      )}
-                      <AnimatePresence initial={false}>
-                        {hasRealLocation(heroEvent.location) && expandedMapIds.has(heroEvent.id) && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.25, ease: 'easeInOut' }}
-                            className="overflow-hidden w-full"
+                        <>
+                          <button
+                            onClick={() => toggleMap(heroEvent.id)}
+                            className={`mt-6 inline-flex items-center gap-1.5 text-xs font-semibold ${t_text} ${t_bg} px-4 py-2 rounded-full transition-colors`}
                           >
-                            <div className={`mt-4 rounded-2xl overflow-hidden border ${c_cardBorder}`} style={{ transform: 'translateZ(0)', isolation: 'isolate' }}>
-                              <iframe
-                                title={`map-${heroEvent.id}`}
-                                src={getMapEmbedUrl(heroEvent.location)}
-                                width="100%"
-                                height="200"
-                                style={{ border: 0, display: 'block' }}
-                                loading="lazy"
-                                referrerPolicy="no-referrer-when-downgrade"
-                              />
-                            </div>
-                            <div className="mt-2 flex justify-end w-full">
-                              <a
-                                href={getMapsExternalUrl(heroEvent.location)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`text-[0.6875rem] font-semibold ${t_text} underline underline-offset-2`}
-                              >
-                                เปิดใน Google Maps
-                              </a>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                            <MapPin className="w-3.5 h-3.5" />
+                            {expandedMapIds.has(heroEvent.id) ? 'ซ่อนแผนที่' : 'ดูแผนที่'}
+                          </button>
+
+                          <MapEmbed
+                            location={heroEvent.location}
+                            eventId={heroEvent.id}
+                            isExpanded={expandedMapIds.has(heroEvent.id)}
+                            t_text={t_text}
+                            c_cardBorder={c_cardBorder}
+                          />
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -644,7 +782,6 @@ export default function App() {
                             </div>
                             <div className="flex-grow min-w-0">
                               <h4 className="font-medium text-sm truncate">{event.title}</h4>
-                              {/* แก้บั๊ก: กิจกรรมหลายวันเคยแสดงแค่วันเริ่มต้น เพิ่มบรรทัดช่วงวันที่เมื่อกินเวลาหลายวัน */}
                               {isMultiDay(event) && (
                                 <p className={`text-[0.625rem] ${c_textSub} truncate mt-0.5`}>{formatEventDateRange(event)}</p>
                               )}
@@ -686,6 +823,7 @@ export default function App() {
               c_cardBorder={c_cardBorder}
               c_cardShadow={c_cardShadow}
               c_textSub={c_textSub}
+              c_textMain={c_textMain}
               themeHex={THEMES[prefs.theme].hex}
             />
           )}
@@ -763,7 +901,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* ตั้งค่าใหม่: จำนวนรายการที่แสดงใน "กำลังจะมาถึง" */}
                 <div className={`${c_cardBg} rounded-3xl p-6 border ${c_cardBorder} ${c_cardShadow} transition-colors duration-300`}>
                   <div className="flex items-center gap-3 mb-4">
                     <div className={`w-10 h-10 rounded-xl ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'} flex items-center justify-center`}>

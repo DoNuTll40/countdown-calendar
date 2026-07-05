@@ -27,3 +27,5 @@ src/pages/*
 .env
 .env.local
 .env.*
+
+install.sh
