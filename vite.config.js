@@ -20,12 +20,12 @@ export default defineConfig({
         display: "standalone", // อันนี้สำคัญ ทำให้เปิดมาไม่มีแถบ URL (เหมือนแอปจริง)
         icons: [
           {
-            src: '/pwa-192x192.png', // ไปหาไอคอนขนาด 192x192 มาใส่ในโฟลเดอร์ public
+            src: 'pwa-192x192.png', // ไปหาไอคอนขนาด 192x192 มาใส่ในโฟลเดอร์ public
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: '/pwa-512x512.png', // ไปหาไอคอนขนาด 512x512 มาใส่ในโฟลเดอร์ public
+            src: 'pwa-512x512.png', // ไปหาไอคอนขนาด 512x512 มาใส่ในโฟลเดอร์ public
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
