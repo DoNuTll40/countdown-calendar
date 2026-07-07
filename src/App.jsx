@@ -446,10 +446,10 @@ const ExportModal = ({ open, onClose, event, isDark, c_cardBg, c_cardBorder, c_t
   // เรนเดอร์ตัวเนื้อหาแบบตายตัวด้วย High-Res CSS เท่านั้น ไม่ให้ตกบรรทัด
   const ExportContent = () => {
     const unitsConfig = [
-      { id: 'days', v: cd.days, l: 'DAYS' },
-      { id: 'hours', v: cd.hours, l: 'HOURS' },
-      { id: 'mins', v: cd.minutes, l: 'MINS' },
-      { id: 'secs', v: cd.seconds, l: 'SECS' }
+      { id: 'days', v: cd.days, l: 'วัน' },
+      { id: 'hours', v: cd.hours, l: 'ชั่วโมง' },
+      { id: 'mins', v: cd.minutes, l: 'นาที' },
+      { id: 'secs', v: cd.seconds, l: 'วินาที' }
     ].filter(u => visibleUnits[u.id]);
 
     return (
@@ -473,9 +473,9 @@ const ExportModal = ({ open, onClose, event, isDark, c_cardBg, c_cardBorder, c_t
               {event.location}
             </div>
           )}
-
+          
           {/* ปรับแก้ให้ Width รวมไม่เกิน 1080px แน่นอน */}
-          <div className="flex flex-row flex-nowrap items-center justify-center gap-6 mt-8">
+          <div className={`flex flex-row flex-nowrap items-center justify-center gap-6 mt-8`}>
             {unitsConfig.map((item, idx) => (
               <div key={idx} className="flex flex-col items-center">
                 {countdownStyle === 'boxed' ? (
@@ -639,7 +639,7 @@ const ExportModal = ({ open, onClose, event, isDark, c_cardBg, c_cardBorder, c_t
 
             </div>
 
-            <div className={`absolute bottom-0 left-0 right-0 p-4 pt-8 z-30 border-t ${c_cardBorder}`} style={{ background: `linear-gradient(to top, ${isDark ? '#1e293b' : '#ffffff'} 70%, transparent)` }}>
+            <div className={`absolute bottom-0 left-0 right-0 p-4 pt-8 z-30 border-0 ${c_cardBorder}`} style={{ background: `linear-gradient(to top, ${isDark ? '#1e293b' : '#ffffff'} 70%, transparent)` }}>
               <button 
                 onClick={handleExport}
                 disabled={isExporting}
