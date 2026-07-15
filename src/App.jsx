@@ -43,27 +43,41 @@ const BACKGROUNDS = [
 ];
 
 const injectSystemSettings = () => {
-  if (!document.getElementById('app-fonts')) {
-    const style = document.createElement('style');
-    style.id = 'app-fonts';
-    style.innerHTML = `
+  if (!document.getElementById("app-fonts")) {
+    const style = document.createElement("style");
+    style.id = "app-fonts";
+
+    style.textContent = `
       @import url('https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap');
-      @font-face {
-        font-family: 'Google Sans';
+
+      html {
+        transition: font-size .2s ease;
       }
-      html { transition: font-size 0.2s ease; }
-      body { touch-action: pan-y; overflow-x: hidden; transition: background-color 0.3s ease; margin: 0; }
-      .font-google { font-family: 'Google Sans', 'Noto Sans Thai', sans-serif; }
+
+      body {
+        margin: 0;
+        overflow-x: hidden;
+        touch-action: pan-y;
+        transition: background-color .3s ease;
+      }
+
+      .font-google {
+        font-family: "Google Sans", sans-serif;
+      }
     `;
+
     document.head.appendChild(style);
   }
+
   let meta = document.querySelector('meta[name="viewport"]');
+
   if (!meta) {
-    meta = document.createElement('meta');
+    meta = document.createElement("meta");
     meta.name = "viewport";
     document.head.appendChild(meta);
   }
-  meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0";
+
+  meta.content = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no";
 };
 
 const ENV = {
