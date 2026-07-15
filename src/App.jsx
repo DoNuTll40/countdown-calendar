@@ -47,10 +47,9 @@ const injectSystemSettings = () => {
     const style = document.createElement('style');
     style.id = 'app-fonts';
     style.innerHTML = `
-      @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap');
       @font-face {
         font-family: 'Google Sans';
-        src: local('Google Sans'), url('https://fonts.gstatic.com/s/productsans/v5/HYvgU2fE2nRJvZ5JFAumwegdm0LZdjqr5-oayXSOefg.woff2') format('woff2');
       }
       html { transition: font-size 0.2s ease; }
       body { touch-action: pan-y; overflow-x: hidden; transition: background-color 0.3s ease; margin: 0; }
