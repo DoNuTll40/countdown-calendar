@@ -91,7 +91,7 @@ export default function SettingsView() {
       <div className="mt-14 pb-0 flex flex-col items-center justify-center text-center">
         <div className={`w-12 h-12 rounded-2xl ${t_bg} ${t_text} flex items-center justify-center mb-3 shadow-sm`}><CalendarDays className="w-6 h-6" /></div>
         <h3 className="font-semibold tracking-tight text-base mb-1 flex items-center justify-center gap-1">Countdown<span className={t_text}>.</span></h3>
-        <p className={`text-xs ${c_textSub} mb-5`}>Version 1.0.0</p>
+        <p className={`text-xs ${c_textSub} mb-5`}>Version 1.2.0</p>
         <div className={`text-[0.625rem] ${c_textSub} space-y-1.5`}><p>Crafted by CS64'125 Nuttawoot Chawna</p><p>© {new Date().getFullYear()} All rights reserved.</p></div>
       </div>
     </motion.div>

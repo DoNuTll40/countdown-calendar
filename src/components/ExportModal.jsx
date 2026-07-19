@@ -173,14 +173,14 @@ const ExportModal = ({ open, onClose, event }) => {
   const ExportContent = () => {
     // Font sizes scaled per ratio
     const sizes = isLandscape
-      ? { title: 'text-[60px]', date: 'text-[28px]', loc: 'text-[24px]', num: 'text-[72px]', label: 'text-[18px]', prefix: 'text-[32px]', ts: 'text-[16px]', wm: 'text-[18px]' }
+      ? { title: 'text-[96px]', date: 'text-[36px]', loc: 'text-[32px]', num: 'text-[100px]', label: 'text-[24px]', prefix: 'text-[44px]', ts: 'text-[20px]', wm: 'text-[24px]' }
       : isSquare
-        ? { title: 'text-[60px]', date: 'text-[28px]', loc: 'text-[24px]', num: 'text-[72px]', label: 'text-[18px]', prefix: 'text-[30px]', ts: 'text-[18px]', wm: 'text-[18px]' }
-        : { title: 'text-[75px]', date: 'text-[34px]', loc: 'text-[30px]', num: 'text-[90px]', label: 'text-[24px]', prefix: 'text-[36px]', ts: 'text-[20px]', wm: 'text-[20px]' };
+        ? { title: 'text-[76px]', date: 'text-[32px]', loc: 'text-[28px]', num: 'text-[92px]', label: 'text-[20px]', prefix: 'text-[38px]', ts: 'text-[20px]', wm: 'text-[22px]' }
+        : { title: 'text-[84px]', date: 'text-[36px]', loc: 'text-[32px]', num: 'text-[104px]', label: 'text-[24px]', prefix: 'text-[42px]', ts: 'text-[22px]', wm: 'text-[24px]' };
 
-    const boxMinW = isLandscape ? 'min-w-[150px]' : isSquare ? 'min-w-[150px]' : 'min-w-[190px]';
-    const boxPy = isLandscape ? 'py-5' : 'py-8';
-    const boxRound = isLandscape ? 'rounded-[24px]' : 'rounded-[32px]';
+    const boxMinW = isLandscape ? 'min-w-[200px]' : isSquare ? 'min-w-[180px]' : 'min-w-[210px]';
+    const boxPy = isLandscape ? 'py-7' : isSquare ? 'py-6' : 'py-8';
+    const boxRound = isLandscape ? 'rounded-[32px]' : isSquare ? 'rounded-[28px]' : 'rounded-[36px]';
 
     // Countdown Prefix
     const PrefixText = () => {
@@ -208,7 +208,7 @@ const ExportModal = ({ open, onClose, event }) => {
               </>
             ) : (
               <div className="flex flex-col items-center px-4">
-                <span className={`${isLandscape ? 'text-[88px]' : 'text-[110px]'} font-bold text-center tabular-nums leading-none tracking-tighter`}>
+                <span className={`${isLandscape ? 'text-[144px]' : isSquare ? 'text-[110px]' : 'text-[132px]'} font-bold text-center tabular-nums leading-none tracking-tighter`}>
                   {(item.v || 0).toString().padStart(2, '0')}
                 </span>
                 <span className={`${sizes.label} mt-4 font-semibold uppercase tracking-widest opacity-70`}>{item.l}</span>
@@ -222,7 +222,7 @@ const ExportModal = ({ open, onClose, event }) => {
     // Info Block (title, date, location)
     const InfoBlock = () => (
       <>
-        {showTitle && <h1 className={`${sizes.title} font-bold leading-tight drop-shadow-sm mb-6 max-w-full break-words text-balance`}>{event.title}</h1>}
+        {showTitle && <h1 className={`${sizes.title} font-bold leading-tight drop-shadow-sm mb-6 w-full break-words`}>{event.title}</h1>}
         {showDate && (
           <div className={`${sizes.date} opacity-90 flex items-center gap-4 mb-4`}>
             {showIcons && <CalendarDays size={isLandscape ? 32 : 40} />}
@@ -230,7 +230,7 @@ const ExportModal = ({ open, onClose, event }) => {
           </div>
         )}
         {showLocation && hasRealLocation(event.location) && (
-          <div className={`${sizes.loc} opacity-90 flex items-center gap-4 mb-8 max-w-full break-words text-balance`}>
+          <div className={`${sizes.loc} opacity-90 flex items-center gap-4 mb-8 max-w-full break-words`}>
             {showIcons && <MapPin size={isLandscape ? 32 : 40} className="flex-shrink-0" />}
             {formatLocationForLang(event.location, lang)}
           </div>
@@ -258,6 +258,16 @@ const ExportModal = ({ open, onClose, event }) => {
       );
     };
 
+    const GlowElements = () => {
+      const glowCls = textColor === 'text-white' ? 'bg-white/5' : 'bg-slate-900/5';
+      return (
+        <>
+          <div className={`absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full ${glowCls} blur-[120px] pointer-events-none z-0`}></div>
+          <div className={`absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] rounded-full ${glowCls} blur-[120px] pointer-events-none z-0`}></div>
+        </>
+      );
+    };
+
     // ── 16:9 Landscape — 2 column layout ────────
     if (isLandscape) {
       return (
@@ -265,15 +275,20 @@ const ExportModal = ({ open, onClose, event }) => {
           className={`w-full h-full flex flex-row ${bgInfo.class} ${textColor} relative overflow-hidden`}
           style={{ fontFamily: "'Google Sans', 'Noto Sans Thai', sans-serif" }}
         >
+          <GlowElements />
+
           {/* Left column — info */}
-          <div className={`flex-1 flex flex-col justify-center ${align.includes('end') ? 'items-end text-right' : align.includes('start') ? 'items-start text-left' : 'items-center text-center'} p-[5%]`}>
+          <div className={`flex-[1.2] flex flex-col justify-center ${align.includes('end') ? 'items-end text-right' : align.includes('start') ? 'items-start text-left' : 'items-center text-center'} p-[5%] z-10`}>
             <InfoBlock />
           </div>
 
+          {/* Divider line */}
+          <div className={`w-[2px] h-[40%] ${textColor === 'text-white' ? 'bg-white/15' : 'bg-slate-900/15'} self-center rounded-full z-10`}></div>
+
           {/* Right column — countdown */}
-          <div className="flex-1 flex flex-col items-center justify-center p-[4%]">
+          <div className="flex-[0.8] flex flex-col items-center justify-center p-[4%] z-10">
             <PrefixText />
-            <CountdownBlock gridCls="gap-4" />
+            <CountdownBlock gridCls="gap-6" />
           </div>
 
           <Watermark />
@@ -289,11 +304,14 @@ const ExportModal = ({ open, onClose, event }) => {
           className={`w-full h-full flex flex-col justify-center ${align} ${bgInfo.class} ${textColor} relative overflow-hidden`}
           style={{ fontFamily: "'Google Sans', 'Noto Sans Thai', sans-serif" }}
         >
-          <div className={`w-full flex flex-col ${align} p-[6%] max-w-[1080px] mx-auto`}>
+          <GlowElements />
+
+          <div className={`w-full flex flex-col ${align} p-[6%] max-w-[1080px] mx-auto z-10`}>
             <InfoBlock />
-            <div className="mt-4 flex flex-col items-center">
+            <div className={`w-[80px] h-[2px] ${textColor === 'text-white' ? 'bg-white/20' : 'bg-slate-900/20'} my-10 rounded-full z-10 ${align.includes('start') ? 'self-start' : align.includes('end') ? 'self-end' : 'self-center'}`}></div>
+            <div className="flex flex-col items-center">
               <PrefixText />
-              <CountdownBlock gridCls="gap-4" />
+              <CountdownBlock gridCls="gap-6" />
             </div>
           </div>
           <Watermark />
@@ -308,8 +326,11 @@ const ExportModal = ({ open, onClose, event }) => {
         className={`w-full h-full flex flex-col justify-center ${align} ${bgInfo.class} ${textColor} relative overflow-hidden`}
         style={{ fontFamily: "'Google Sans', 'Noto Sans Thai', sans-serif" }}
       >
-        <div className={`w-full flex flex-col ${align} p-[6%] max-w-[1080px] mx-auto`}>
+        <GlowElements />
+
+        <div className={`w-full flex flex-col ${align} p-[6%] max-w-[1080px] mx-auto z-10`}>
           <InfoBlock />
+          <div className={`w-[80px] h-[2px] ${textColor === 'text-white' ? 'bg-white/20' : 'bg-slate-900/20'} my-10 rounded-full z-10 ${align.includes('start') ? 'self-start' : align.includes('end') ? 'self-end' : 'self-center'}`}></div>
           <div className="mt-8 flex flex-col items-center">
             <PrefixText />
             <CountdownBlock />

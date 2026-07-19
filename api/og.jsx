@@ -35,6 +35,11 @@ export default async function handler(req) {
 
   const gradient = gradients[theme] || gradients.blue;
 
+  // Fetch Kanit font to support Thai glyphs (prevent tofu boxes ▢▢▢)
+  const fontData = await fetch(
+    new URL('https://github.com/google/fonts/raw/main/ofl/kanit/Kanit-Medium.ttf')
+  ).then((res) => res.arrayBuffer());
+
   return new ImageResponse(
     (
       <div
@@ -47,7 +52,7 @@ export default async function handler(req) {
           justifyContent: 'center',
           background: `linear-gradient(135deg, ${gradient.from}, ${gradient.to})`,
           color: 'white',
-          fontFamily: 'sans-serif',
+          fontFamily: 'Kanit',
           padding: '60px',
           position: 'relative',
         }}
@@ -144,6 +149,13 @@ export default async function handler(req) {
     {
       width: 1200,
       height: 630,
+      fonts: [
+        {
+          name: 'Kanit',
+          data: fontData,
+          style: 'normal',
+        },
+      ],
     },
   );
 }
