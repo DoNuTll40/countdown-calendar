@@ -3,11 +3,11 @@
 // ============================================================
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
-import { THEMES, FONT_SIZE_PX } from '../constants';
+import { THEMES, FONT_SIZE_PX, TRANSLATIONS } from '../constants';
 
 const AppContext = createContext(null);
 
-const DEFAULT_PREFS = { theme: 'blue', fontSize: 'base', darkMode: false, navSize: 'md', upcomingCount: 3 };
+const DEFAULT_PREFS = { theme: 'blue', fontSize: 'base', darkMode: false, navSize: 'md', upcomingCount: 3, lang: 'th' };
 
 const loadPrefs = () => {
   try {
@@ -71,12 +71,17 @@ export function AppProvider({ children }) {
     return { container: 'max-w-[20rem] p-2', icon: 'w-[1.375rem] h-[1.375rem]', text: 'text-[0.625rem] mt-1' };
   }, [prefs.navSize]);
 
+  const lang = useMemo(() => prefs.lang || 'th', [prefs.lang]);
+  const L = useMemo(() => TRANSLATIONS[lang] || TRANSLATIONS.th, [lang]);
+
   const value = useMemo(() => ({
     prefs,
     handleSavePrefs,
     ...theme,
     navStyles,
-  }), [prefs, handleSavePrefs, theme, navStyles]);
+    lang,
+    L
+  }), [prefs, handleSavePrefs, theme, navStyles, lang, L]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

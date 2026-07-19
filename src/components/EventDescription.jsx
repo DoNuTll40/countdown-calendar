@@ -7,7 +7,7 @@ import { CalendarDays, MapPin, X } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { cleanSpanArtifacts, buildMarkdownComponents, formatEventDateRange, hasRealLocation } from '../utils';
+import { cleanSpanArtifacts, buildMarkdownComponents, formatEventDateRange, hasRealLocation, formatLocationForLang } from '../utils';
 import { useAppContext } from '../context/AppContext';
 import EventActionsBar from './EventActionsBar';
 import MapEmbed from './MapEmbed';
@@ -17,7 +17,7 @@ const DescriptionModal = React.memo(function DescriptionModal({
   open, event, onClose,
   showActions, isMapExpanded, onToggleMap, onShare, isCopied
 }) {
-  const { isDark, c_cardBg, c_cardBorder, c_textSub, c_textMain, t_text, t_bg } = useAppContext();
+  const { isDark, c_cardBg, c_cardBorder, c_textSub, c_textMain, t_text, t_bg, lang, L } = useAppContext();
   const dragControls = useDragControls();
   const components = useMemo(() => buildMarkdownComponents(t_text, false), [t_text]);
   const cleaned = useMemo(() => (event ? cleanSpanArtifacts(event.description) : ''), [event]);
@@ -62,11 +62,11 @@ const DescriptionModal = React.memo(function DescriptionModal({
               <div className="min-w-0">
                 <h3 className={`text-lg font-semibold ${c_textMain} leading-snug`}>{event.title}</h3>
                 <p className={`text-xs ${c_textSub} mt-1.5 flex items-center gap-1.5 flex-wrap`}>
-                  <CalendarDays className="w-3.5 h-3.5 flex-shrink-0" /> {formatEventDateRange(event)}
+                  <CalendarDays className="w-3.5 h-3.5 flex-shrink-0" /> {formatEventDateRange(event, lang)}
                 </p>
                 {hasRealLocation(event.location) && (
                   <p className={`text-xs ${c_textSub} mt-1 flex items-start gap-1.5`}>
-                    <MapPin className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" /> {event.location}
+                    <MapPin className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" /> {formatLocationForLang(event.location, lang)}
                   </p>
                 )}
               </div>
@@ -84,7 +84,7 @@ const DescriptionModal = React.memo(function DescriptionModal({
                   <MapEmbed location={event.location} eventId={event.id} isExpanded={isMapExpanded} t_text={t_text} c_cardBorder={c_cardBorder} />
                 </div>
               )}
-              {cleaned ? <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{cleaned}</ReactMarkdown> : <p className={c_textSub}>ไม่มีรายละเอียดเพิ่มเติม</p>}
+              {cleaned ? <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{cleaned}</ReactMarkdown> : <p className={c_textSub}>{L.noDetails}</p>}
             </div>
           </motion.div>
         </>
@@ -95,7 +95,7 @@ const DescriptionModal = React.memo(function DescriptionModal({
 
 // --- Inline Description Preview ---
 const EventDescription = React.memo(function EventDescription({ event }) {
-  const { isDark, c_cardBg, c_cardBorder, c_textSub, c_textMain, t_text, t_bg } = useAppContext();
+  const { isDark, c_cardBg, c_cardBorder, c_textSub, c_textMain, t_text, t_bg, L } = useAppContext();
   const [open, setOpen] = useState(false);
   const cleaned = useMemo(() => cleanSpanArtifacts(event.description), [event.description]);
   const previewComponents = useMemo(() => buildMarkdownComponents(t_text, true), [t_text]);
@@ -108,7 +108,7 @@ const EventDescription = React.memo(function EventDescription({ event }) {
         <div className="line-clamp-2">
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={previewComponents}>{cleaned}</ReactMarkdown>
         </div>
-        <button onClick={() => setOpen(true)} className={`text-[0.6875rem] font-semibold ${t_text} mt-1`}>ดูเพิ่มเติม</button>
+        <button onClick={() => setOpen(true)} className={`text-[0.6875rem] font-semibold ${t_text} mt-1`}>{L.viewMore}</button>
       </div>
       <DescriptionModal open={open} event={event} onClose={() => setOpen(false)} />
     </>

@@ -54,15 +54,41 @@ export const getInitialTab = () => {
 };
 
 // --- Location Helpers ---
-export const hasRealLocation = (location) => !!location && location !== 'ไม่ระบุสถานที่';
+export const hasRealLocation = (location) => 
+  !!location && 
+  location !== 'ไม่ระบุสถานที่' && 
+  location !== 'No location specified' && 
+  location !== 'No location';
+
+export const formatLocationForLang = (location, lang = 'th') => {
+  if (!hasRealLocation(location)) {
+    return lang === 'en' ? 'No location specified' : 'ไม่ระบุสถานที่';
+  }
+  return location;
+};
+
 export const getMapEmbedUrl = (location) => `https://maps.google.com/maps?q=${encodeURIComponent(location)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
 export const getMapsExternalUrl = (location) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
 
 // --- Date Formatting ---
-export const formatThaiDate = (date) => date.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short', year: '2-digit' });
-export const formatTimestamp = (date) => date.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+export const formatDateForLang = (date, lang = 'th') => {
+  const locale = lang === 'en' ? 'en-US' : 'th-TH';
+  const yearOpt = lang === 'en' ? 'numeric' : '2-digit';
+  return date.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', year: yearOpt });
+};
+
+export const formatTimestamp = (date, lang = 'th') => {
+  const locale = lang === 'en' ? 'en-US' : 'th-TH';
+  return date.toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
 export const isMultiDay = (event) => event.endDate && event.date.toDateString() !== event.endDate.toDateString();
-export const formatEventDateRange = (event) => isMultiDay(event) ? `${formatThaiDate(event.date)} - ${formatThaiDate(event.endDate)}` : formatThaiDate(event.date);
+
+export const formatEventDateRange = (event, lang = 'th') => {
+  return isMultiDay(event)
+    ? `${formatDateForLang(event.date, lang)} - ${formatDateForLang(event.endDate, lang)}`
+    : formatDateForLang(event.date, lang);
+};
 
 // --- Text Cleaning ---
 export const stripHtml = (html) => html

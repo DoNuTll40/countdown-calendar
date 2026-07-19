@@ -10,12 +10,12 @@ import { useAppContext } from '../context/AppContext';
 const ripple = new Ripple();
 
 export default function BottomNav({ activeTab, onTabChange }) {
-  const { isDark, c_navBg, c_cardBorder, c_textSub, t_bg, t_text, navStyles } = useAppContext();
+  const { isDark, c_navBg, c_cardBorder, c_textSub, t_bg, t_text, navStyles, L } = useAppContext();
 
   const tabs = [
-    { id: 'dashboard', icon: Home, label: 'หน้าแรก' },
-    { id: 'timeline', icon: CalendarDays, label: 'กำหนดการ' },
-    { id: 'settings', icon: Settings, label: 'ตั้งค่า' },
+    { id: 'dashboard', icon: Home, label: L.home },
+    { id: 'timeline', icon: CalendarDays, label: L.timeline },
+    { id: 'settings', icon: Settings, label: L.settingsTab },
   ];
 
   return (

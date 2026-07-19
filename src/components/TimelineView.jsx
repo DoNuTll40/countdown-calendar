@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { CalendarDays, Star, RefreshCw, Loader2 } from 'lucide-react';
 import Ripple from '@nuttawoot_donut/react-ripple';
 import { useAppContext } from '../context/AppContext';
-import { formatEventDateRange } from '../utils';
+import { formatEventDateRange, formatLocationForLang } from '../utils';
 import { AddressLine } from './MapEmbed';
 import MapEmbed from './MapEmbed';
 import EventDescription from './EventDescription';
@@ -19,19 +19,19 @@ const TimelineView = React.memo(function TimelineView({
   events, heroEventId, isAppLoading, expandedMapIds,
   onToggleMap, onSetHero, onRefresh, onShare, copiedId,
 }) {
-  const { isDark, c_cardBg, c_cardBorder, c_cardShadow, c_textSub, c_textMain, t_bg, t_text, t_border, themeHex } = useAppContext();
+  const { isDark, c_cardBg, c_cardBorder, c_cardShadow, c_textSub, c_textMain, t_bg, t_text, t_border, themeHex, lang, L } = useAppContext();
 
   return (
     <motion.div key="timeline" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-semibold">กำหนดการทั้งหมด</h2>
+        <h2 className="text-2xl font-semibold">{L.allSchedules}</h2>
         <button onMouseDown={(e) => ripple.create(e)} onClick={onRefresh} className={`relative overflow-hidden w-10 h-10 rounded-full ${t_bg} ${t_text} flex items-center justify-center transition-colors`}>
           <RefreshCw className={`w-5 h-5 ${isAppLoading ? 'animate-spin' : ''}`} />
         </button>
       </div>
       <div className="space-y-4">
         {isAppLoading ? (
-          <div className={`text-center py-10 ${c_textSub} text-sm flex items-center justify-center gap-2`}><Loader2 className={`w-4 h-4 animate-spin ${t_text}`} /> กำลังโหลด...</div>
+          <div className={`text-center py-10 ${c_textSub} text-sm flex items-center justify-center gap-2`}><Loader2 className={`w-4 h-4 animate-spin ${t_text}`} /> {L.loading}</div>
         ) : events.map((event) => {
           const isHero = event.id === heroEventId;
           return (
@@ -44,8 +44,8 @@ const TimelineView = React.memo(function TimelineView({
                 <div className="flex-grow min-w-0">
                   <h3 className="text-lg font-medium mb-1 leading-snug pr-14">{event.title}</h3>
                   <div className={`text-sm ${c_textSub} space-y-1`}>
-                    <p className="flex items-center gap-1.5 flex-wrap"><CalendarDays className="w-4 h-4" /> {formatEventDateRange(event)}</p>
-                    <AddressLine location={event.location} />
+                    <p className="flex items-center gap-1.5 flex-wrap"><CalendarDays className="w-4 h-4" /> {formatEventDateRange(event, lang)}</p>
+                    <AddressLine location={formatLocationForLang(event.location, lang)} />
                     {event.description && <EventDescription event={event} />}
                     <EventActionsBar event={event} isMapExpanded={expandedMapIds.has(event.id)} onToggleMap={onToggleMap} onShare={onShare} isCopied={copiedId === event.id} t_text={t_text} t_bg={t_bg} />
                     <MapEmbed location={event.location} eventId={event.id} isExpanded={expandedMapIds.has(event.id)} t_text={t_text} c_cardBorder={c_cardBorder} />
