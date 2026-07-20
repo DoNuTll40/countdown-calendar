@@ -42,9 +42,10 @@ export default async function handler(req) {
   ).then((res) => res.arrayBuffer());
 
   return new ImageResponse(
-    (
-      <div
-        style={{
+    React.createElement(
+      'div',
+      {
+        style: {
           width: '100%',
           height: '100%',
           display: 'flex',
@@ -56,96 +57,102 @@ export default async function handler(req) {
           fontFamily: 'Kanit',
           padding: '60px',
           position: 'relative',
-        }}
-      >
-        {/* Decorative circle */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '-120px',
-            right: '-120px',
-            width: '400px',
-            height: '400px',
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.08)',
-          }}
-        />
-
-        {/* Countdown prefix */}
-        {countdownText && (
-          <div
-            style={{
+        },
+      },
+      // Decorative circle
+      React.createElement('div', {
+        style: {
+          position: 'absolute',
+          top: '-120px',
+          right: '-120px',
+          width: '400px',
+          height: '400px',
+          borderRadius: '50%',
+          background: 'rgba(255,255,255,0.08)',
+        },
+      }),
+      // Countdown prefix
+      countdownText &&
+        React.createElement(
+          'div',
+          {
+            style: {
               fontSize: '32px',
               fontWeight: 700,
               opacity: 0.9,
               marginBottom: '16px',
               letterSpacing: '2px',
-            }}
-          >
-            {countdownText}
-          </div>
-        )}
-
-        {/* Title */}
-        <div
-          style={{
+            },
+          },
+          countdownText
+        ),
+      // Title
+      React.createElement(
+        'div',
+        {
+          style: {
             fontSize: '64px',
             fontWeight: 800,
             textAlign: 'center',
             lineHeight: 1.2,
             maxWidth: '900px',
             textShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          }}
-        >
-          {title}
-        </div>
-
-        {/* Date */}
-        {date && (
-          <div
-            style={{
+          },
+        },
+        title
+      ),
+      // Date
+      date &&
+        React.createElement(
+          'div',
+          {
+            style: {
               fontSize: '28px',
               opacity: 0.85,
               marginTop: '20px',
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
-            }}
-          >
-            📅 {new Date(date).toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-          </div>
-        )}
-
-        {/* Location */}
-        {location && (
-          <div
-            style={{
+            },
+          },
+          `📅 ${new Date(date).toLocaleDateString('th-TH', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })}`
+        ),
+      // Location
+      location &&
+        React.createElement(
+          'div',
+          {
+            style: {
               fontSize: '24px',
               opacity: 0.75,
               marginTop: '12px',
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
-            }}
-          >
-            📍 {location}
-          </div>
-        )}
-
-        {/* Branding */}
-        <div
-          style={{
+            },
+          },
+          `📍 ${location}`
+        ),
+      // Branding
+      React.createElement(
+        'div',
+        {
+          style: {
             position: 'absolute',
             bottom: '30px',
             left: '40px',
             fontSize: '20px',
             fontWeight: 700,
             opacity: 0.4,
-          }}
-        >
-          Countdown.
-        </div>
-      </div>
+          },
+        },
+        'Countdown.'
+      )
     ),
     {
       width: 1200,
@@ -157,6 +164,6 @@ export default async function handler(req) {
           style: 'normal',
         },
       ],
-    },
+    }
   );
 }
