@@ -11,6 +11,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      workbox: {
+        navigateFallbackDenylist: [/^\/api\//], // <--- กันไม่ให้ /api/* โดน fallback ไป index.html
+      },
       manifest: {
         name: 'Countdown App',
         short_name: 'Countdown',
